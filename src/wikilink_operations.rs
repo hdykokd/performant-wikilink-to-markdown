@@ -1,6 +1,5 @@
-
-use std::path::{Path};
 use pathdiff::diff_paths;
+use std::path::Path;
 // Replaces wikilinks in the given text with their corresponding reference in entries.
 pub fn find_wikilinks(text: &str, entries: &[String], entry: &str) -> String {
     let re = regex::Regex::new(r"\[\[(.+?)\]\]").unwrap();
@@ -12,7 +11,7 @@ pub fn find_wikilinks(text: &str, entries: &[String], entry: &str) -> String {
 }
 
 // Finds the corresponding reference in entries and returns the properly formatted link.
-pub fn find_reference(reference: &str, entries: &[String],  entry_path: &str) -> String {
+pub fn find_reference(reference: &str, entries: &[String], entry_path: &str) -> String {
     let matching_entry = entries.iter().find(|entry| {
         let filename = Path::new(entry).file_stem().unwrap().to_str().unwrap();
         filename == reference
@@ -26,7 +25,6 @@ pub fn find_reference(reference: &str, entries: &[String],  entry_path: &str) ->
 
 // Formats the link using the given entry and reference.
 pub fn format_link(entry: &str, reference: &str, entry_path: &str) -> String {
-
     let path_host = Path::new(entry_path);
     let path_reference = Path::new(entry);
 
@@ -38,6 +36,13 @@ pub fn format_link(entry: &str, reference: &str, entry_path: &str) -> String {
         }
     };
     let rel_path = rel_path.strip_prefix("..").unwrap_or(&rel_path);
-    let encoded_filename = rel_path.to_str().unwrap().replace(" ", "%20");
-    format!("[{}]({})", reference, encoded_filename)
+    let path = Path::new(&rel_path);
+    let file_stem = path
+        .file_stem()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .replace(' ', "%20");
+
+    format!("[{}]({})", reference, file_stem)
 }
