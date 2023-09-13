@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 /**
 
 Rust program for processing files by finding wikilinks and replacing them with their corresponding references.
@@ -9,10 +10,8 @@ processes each file by finding wikilinks and replacing them with their correspon
 and writes the processed files to the output directory with the same directory structure as the input directory.
 
 */
-
 use std::env;
 use std::fs;
-use rayon::prelude::*;
 
 mod file_operations;
 mod wikilink_operations;
@@ -25,30 +24,36 @@ fn main() {
     }
     let input_path = &args[1];
     let output_path = &args[2];
+    let path_prefix = &args[3];
 
     match get_entries(input_path) {
-        Ok(entries) => process_entries(&entries, input_path, output_path),
+        Ok(entries) => process_entries(&entries, input_path, output_path, path_prefix),
         Err(e) => println!("Error reading input directory {}: {}", input_path, e),
     }
 }
 
 // Processes each entry by reading the file, finding wikilinks, and writing the output.
-fn process_entries(entries: &[String], input_path: &str, output_path: &str) {
-    entries.par_iter().for_each(|entry| {
-        match file_operations::read_file(&entry) {
+fn process_entries(entries: &[String], input_path: &str, output_path: &str, path_prefix: &str) {
+    entries
+        .par_iter()
+        .for_each(|entry| match file_operations::read_file(&entry) {
             Ok(contents) => {
-                let wikilinks = wikilink_operations::find_wikilinks(&contents, &entries, &entry);
-                let output_file_path = file_operations::build_output_path(entry, input_path, output_path);
+                let wikilinks =
+                    wikilink_operations::find_wikilinks(&contents, &entries, &entry, path_prefix);
+                let output_file_path =
+                    file_operations::build_output_path(entry, input_path, output_path);
                 match file_operations::write_output_file(&output_file_path, wikilinks.as_str()) {
                     Ok(_) => (),
-                    Err(e) => println!("Error writing to output file {}: {}", output_file_path.display(), e),
+                    Err(e) => println!(
+                        "Error writing to output file {}: {}",
+                        output_file_path.display(),
+                        e
+                    ),
                 }
             }
             Err(e) => println!("Error reading file {}: {}", entry, e),
-        }
-    });
+        });
 }
-
 
 // Recursively retrieves file entries in the specified directory.
 fn get_entries(path: &str) -> Result<Vec<String>, std::io::Error> {

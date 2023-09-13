@@ -1,30 +1,36 @@
 use pathdiff::diff_paths;
 use std::path::Path;
+
 // Replaces wikilinks in the given text with their corresponding reference in entries.
-pub fn find_wikilinks(text: &str, entries: &[String], entry: &str) -> String {
+pub fn find_wikilinks(text: &str, entries: &[String], entry: &str, path_prefix: &str) -> String {
     let re = regex::Regex::new(r"\[\[(.+?)\]\]").unwrap();
     re.replace_all(text, |caps: &regex::Captures| {
         let reference = caps.get(1).unwrap().as_str();
-        find_reference(reference, entries, entry)
+        find_reference(reference, entries, entry, path_prefix)
     })
     .to_string()
 }
 
 // Finds the corresponding reference in entries and returns the properly formatted link.
-pub fn find_reference(reference: &str, entries: &[String], entry_path: &str) -> String {
+pub fn find_reference(
+    reference: &str,
+    entries: &[String],
+    entry_path: &str,
+    path_prefix: &str,
+) -> String {
     let matching_entry = entries.iter().find(|entry| {
         let filename = Path::new(entry).file_stem().unwrap().to_str().unwrap();
         filename == reference
     });
 
     match matching_entry {
-        Some(entry) => format_link(entry, reference, entry_path),
-        None => format!("[{}](./)", reference),
+        Some(entry) => format_link(entry, reference, entry_path, path_prefix),
+        None => format!("[{}](/blog/)", reference),
     }
 }
 
 // Formats the link using the given entry and reference.
-pub fn format_link(entry: &str, reference: &str, entry_path: &str) -> String {
+pub fn format_link(entry: &str, reference: &str, entry_path: &str, path_prefix: &str) -> String {
     let path_host = Path::new(entry_path);
     let path_reference = Path::new(entry);
 
@@ -44,5 +50,14 @@ pub fn format_link(entry: &str, reference: &str, entry_path: &str) -> String {
         .unwrap()
         .replace(' ', "%20");
 
-    format!("[{}]({})", reference, file_stem)
+    format!(
+        "[{}]({}/{})",
+        reference,
+        if !path_prefix.is_empty() {
+            path_prefix
+        } else {
+            "./"
+        },
+        file_stem,
+    )
 }
